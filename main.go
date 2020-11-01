@@ -34,12 +34,12 @@ func createMachineMap() map[uint16]string {
 
 func createDataDirectoryMap() map[uint16]string {
 	return map[uint16]string{
-		IMAGE_DIRECTORY_ENTRY_EXPORT:         "export table",
-		IMAGE_DIRECTORY_ENTRY_IMPORT:         "import table",
-		IMAGE_DIRECTORY_ENTRY_RESOURCE:       "resource table",
+		IMAGE_DIRECTORY_ENTRY_EXPORT:         "export table(导出表)",
+		IMAGE_DIRECTORY_ENTRY_IMPORT:         "import table(导入表)",
+		IMAGE_DIRECTORY_ENTRY_RESOURCE:       "resource table(资源表)",
 		IMAGE_DIRECTORY_ENTRY_EXCEPTION:      "exception table",
 		IMAGE_DIRECTORY_ENTRY_SECURITY:       "security table",
-		IMAGE_DIRECTORY_ENTRY_BASERELOC:      "base location table",
+		IMAGE_DIRECTORY_ENTRY_BASERELOC:      "base location table（重定位表）",
 		IMAGE_DIRECTORY_ENTRY_DEBUG:          "debug table",
 		IMAGE_DIRECTORY_ENTRY_ARCHITECTURE:   "architecture table",
 		IMAGE_DIRECTORY_ENTRY_GLOBALPTR:      "global point table",
@@ -71,7 +71,7 @@ func printSections(number uint16) {
 }
 
 func printTimeDateStamp(time uint32) {
-	fmt.Println("创建时间戳:", time)
+	fmt.Println("创建时间戳:", TimestampToDatetime(int64(time)))
 }
 
 func printPointerToSymbolTable(p *pe.FileHeader) {
@@ -148,15 +148,19 @@ func printOptionalHeader32(head *pe.OptionalHeader32) {
 
 	fmt.Println("\t未初始化数据段的大小:", head.SizeOfUninitializedData)
 
+	fmt.Printf("\t内存对齐方式: 0x%X\n", head.SectionAlignment)
+
+	fmt.Printf("\t文件对齐方式: 0x%X\n", head.FileAlignment)
+
 	fmt.Printf("\t程序执行入口: 0x%X\n", head.AddressOfEntryPoint)
 
 	fmt.Printf("\t代码段起始地址: 0x%X\n", head.BaseOfCode)
 
 	fmt.Printf("\t进程首选基址: 0x%X\n", head.ImageBase)
 
-	for i := 0; i < 16; i++ {
+	for i := 0; i < 15; i++ {
 		dataDir := head.DataDirectory[i]
-		fmt.Printf("\t%s:, virtual address:0x%X, ",DataDirectory[uint16(i)],dataDir.VirtualAddress)
+		fmt.Printf("\t%s: virtual address: 0x%X\n", DataDirectory[uint16(i)], dataDir.VirtualAddress)
 	}
 }
 
@@ -171,11 +175,42 @@ func printOptionalHeader64(head *pe.OptionalHeader64) {
 
 	fmt.Println("\t未初始化数据段的大小:", head.SizeOfUninitializedData)
 
+	fmt.Printf("\t内存对齐方式: 0x%X\n", head.SectionAlignment)
+
+	fmt.Printf("\t文件对齐方式: 0x%X\n", head.FileAlignment)
+
 	fmt.Printf("\t程序执行入口: 0x%X\n", head.AddressOfEntryPoint)
 
 	fmt.Printf("\t代码段起始地址: 0x%X\n", head.BaseOfCode)
 
 	fmt.Printf("\t进程首选基址: 0x%X\n", head.ImageBase)
+}
+
+func printSectionTable(sections []*pe.Section) {
+	fmt.Println("section tables:")
+	for i, section := range sections {
+		fmt.Printf("%02d %s:\n", i+1, section.Name)
+		fmt.Printf("\tVirtualSize: 0x%X, VirtualAddress: 0x%X\n", section.VirtualSize, section.VirtualAddress)
+		fmt.Printf("\tRawSize: 0x%X, RawOffset: 0x%X\n", section.Size, section.Offset)
+		fmt.Printf("\tPointerToRelocations: 0x%X, PointerToLineNumbers: 0x%X\n", section.PointerToRelocations, section.PointerToLineNumbers)
+		fmt.Printf("\tNumberOfRelocations: 0x%X, NumberOfLineNumbers: 0x%X\n", section.NumberOfRelocations, section.NumberOfLineNumbers)
+		fmt.Printf("\tCharacteristics: 0x%X\n", section.Characteristics)
+	}
+}
+
+func printSymbols(symbols []*pe.Symbol) {
+	fmt.Printf("symbol tables:")
+	if len(symbols) == 0 {
+		fmt.Printf(" nil\n")
+		return
+	}
+	fmt.Printf("\n")
+	for i, symbol := range symbols {
+		fmt.Printf("%02d %s:\n", i+1, symbol.Name)
+		fmt.Printf("Value: 0x%X\n", symbol.Value)
+		fmt.Printf("Type: 0x%X\n", symbol.Type)
+		fmt.Printf("StorageClass: 0x%X\n", symbol.StorageClass)
+	}
 }
 
 func PrintPEFile(file *pe.File) {
@@ -196,7 +231,8 @@ func PrintPEFile(file *pe.File) {
 		option := file.OptionalHeader.(*pe.OptionalHeader64)
 		printOptionalHeader64(option)
 	}
-
+	printSectionTable(file.Sections)
+	printSymbols(file.Symbols)
 }
 
 func PrintExit(a ...interface{}) {
