@@ -184,6 +184,11 @@ func printOptionalHeader64(head *pe.OptionalHeader64) {
 	fmt.Printf("\t代码段起始地址: 0x%X\n", head.BaseOfCode)
 
 	fmt.Printf("\t进程首选基址: 0x%X\n", head.ImageBase)
+
+	for i := 0; i < 15; i++ {
+		dataDir := head.DataDirectory[i]
+		fmt.Printf("\t%s: virtual address: 0x%X\n", DataDirectory[uint16(i)], dataDir.VirtualAddress)
+	}
 }
 
 func printSectionTable(sections []*pe.Section) {
@@ -213,6 +218,14 @@ func printSymbols(symbols []*pe.Symbol) {
 	}
 }
 
+func printImportTable(file *pe.File) {
+	importTable, _ := file.ImportedSymbols()
+	fmt.Println("import table:")
+	for _, symbol := range importTable {
+		fmt.Println(symbol)
+	}
+}
+
 func PrintPEFile(file *pe.File) {
 	//-------------- parse FileHeader -----------------
 	printMachine(file.FileHeader.Machine)
@@ -233,6 +246,7 @@ func PrintPEFile(file *pe.File) {
 	}
 	printSectionTable(file.Sections)
 	printSymbols(file.Symbols)
+	printImportTable(file)
 }
 
 func PrintExit(a ...interface{}) {
